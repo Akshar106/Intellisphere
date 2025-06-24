@@ -15,7 +15,7 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings, GoogleGenerativ
 load_dotenv()
 
 # Initialize MongoDB client first
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+MONGO_URI = os.getenv("MONGO_URI", "your_url")
 client = MongoClient(MONGO_URI)
 db = client["intellisphere6"]
 users_collection = db["users"]
