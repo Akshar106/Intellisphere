@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health - IntelliSphere6</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* General styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Times New Roman", serif;
+        }
+
+        body {
+            background-color: #f4f4f4;
+            color: #333;
+            text-align: center;
+        }
+
+        /* Navigation Bar */
+        nav {
+            background: #007bff;
+            padding: 15px;
+            display: flex;
+            justify-content: space-around;
+            position: sticky;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 10px 15px;
+            transition: 0.3s;
+        }
+
+        nav a:hover, nav a.active {
+            background: white;
+            color: #007bff;
+            border-radius: 5px;
+        }
+
+        /* Layout */
+        .container {
+            display: flex;
+            justify-content: space-between;
+            padding: 40px;
+        }
+        .chat-container {
+            flex-grow: 1;
+            max-width: 1300px;
+            height: 45vh;
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            margin-left: 280px;
+            margin-top: 10px; /* Adjusted for session panel */
+        }
+
+        /* Session Panel */
+        .session-panel {
+            width: 250px;
+            height: 85vh;
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            position: fixed;
+            top: 80px;
+            left: 20px;
+        }
+        .active-session {
+            background-color: #0a3297 !important;
+            color: white !important;
+            font-weight: bold;
+            border-radius: 5px;
+        }
+
+
+        .new-session-btn {
+            width: 100%;
+            padding: 10px;
+            background: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .new-session-btn:hover {
+            background: #218838;
+        }
+
+        #session-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 10px;
+        }
+
+        #session-list li {
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-align: center;
+        }
+
+        #session-list li:hover {
+            background: #0056b3;
+        }
+
+        /* Chat Container */
+        
+
+        /* Chat Messages */
+        .message {
+            word-wrap: break-word;
+            max-width: 80%;
+            font-size: 18px;
+            margin-bottom: 1px;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: #007bff;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 10px 10px 0 10px;
+            text-align: right;
+            font-weight: bold;
+        }
+
+        .ai-message {
+            align-self: flex-start;
+            background: #f1f1f1;
+            color: black;
+            padding: 12px 18px;
+            border-radius: 10px 10px 10px 0;
+            text-align: left;
+        }
+
+        /* Bottom Bar (Chat Input) */
+        .input-container {
+            display: flex;
+            padding: 10px;
+            background: #f1f1f1;
+            margin-left: 10px; /* Adjusted for session panel */
+        }
+
+        #text-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-left: 1px;
+        }
+
+        #submit-btn {
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-left: 10px;
+        }
+
+        #submit-btn:hover {
+            background: #0056b3;
+        }
+
+        /* Loading Indicator */
+        #loading-indicator {
+            display: none;
+            font-size: 16px;
+            margin-top: 5px;
+            color: gray;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            .session-panel {
+                position: static;
+                width: 100%;
+                height: auto;
+                margin-bottom: 20px;
+            }
+            
+            
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="{{ url_for('law') }}">Law</a>
+        <a href="{{ url_for('health') }}" class="active">Health</a>
+        <a href="{{ url_for('technology') }}">Technology</a>
+        <a href="{{ url_for('finance') }}">Finance</a>
+        <a href="{{ url_for('research') }}">Research</a>
+        <a href="{{ url_for('education') }}">Education</a>
+    </nav>
+
+    
+        <!-- Session Panel -->
+        <div class="session-panel">
+            <button id="new-session-btn" class="new-session-btn">➕ New Chat</button>
+            <ul id="session-list"></ul>
+        </div>
+
+        <!-- Chat Container -->
+        
+        <div id="loading-indicator">
+            <p>Processing your request... Please wait.</p>
+        </div>
+    <div class="chat-container" id="chat-container"></div>
+    
+    <!-- Bottom Bar for Input -->
+    <div id="bottom-bar">
+        <input type="text" id="text-input" placeholder="Ask Health related question here...">
+        <button id="submit-btn">Submit</button>
+    </div>
+
+    <script>
+        const currentDomain = "{{ domain }}";
+        // Make sure currentDomain is accessible
+        console.log("Current domain:", currentDomain);
+    </script>
+    <script defer src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

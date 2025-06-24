@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - IntelliSphere6</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Times New Roman", serif;
+        }
+
+        body {
+            background-color: #f4f4f4;
+            color: #333;
+            text-align: center;
+        }
+
+        nav {
+            background: #007bff;
+            padding: 15px;
+            display: flex;
+            justify-content: space-around;
+            position: sticky;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 10px 15px;
+            transition: 0.3s;
+        }
+
+        nav a:hover, nav a.active {
+            background: white;
+            color: #007bff;
+            border-radius: 5px;
+        }
+
+        .hero {
+            background: url('https://source.unsplash.com/1600x700/?education,technology') no-repeat center center/cover;
+            color: rgb(6, 6, 6);
+            padding: 50px 20px;
+            padding-bottom: 10px;
+        }
+
+        .hero h1 {
+            font-size: 3em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .hero p {
+            font-size: 1.5em;
+            margin-top: 10px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+        }
+
+        .domain-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 40px 10%;
+            max-width: 1200px;
+            margin: auto;
+            padding-bottom: 10px;
+        }
+        section {
+            margin-bottom: 5px; 
+            padding: 5px 0; 
+        }
+
+        .domain {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: 0.3s;
+            text-align: center;
+        }
+
+        .domain:hover {
+            transform: translateY(-5px);
+        }
+
+        .domain h2 {
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        .domain img {
+            width: 100px;
+            height: auto;
+            margin-bottom: 10px;
+        }
+
+        footer {
+            background: #222;
+            color: white;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        .articles {
+            margin: 50px auto;
+            max-width: 1100px;
+            text-align: left;
+        }
+
+        .articles h2 {
+            margin-bottom: 20px;
+            color: #007bff;
+        }
+
+        .article {
+            background: white;
+            padding: 15px;
+            border-left: 5px solid #007bff;
+            margin-bottom: 15px;
+        }
+
+        .testimonials {
+            background: #ddd;
+            padding: 40px;
+            margin-top: 30px;
+        }
+
+        .testimonial {
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+        .signout {
+            background: red;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.3s;
+        }
+
+        .signout:hover {
+            background: darkred;
+        }
+
+        @media (max-width: 900px) {
+            .domain-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .domain-container {
+                grid-template-columns: repeat(1, 1fr);
+            }
+        }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const signOutButton = document.getElementById("signout-btn");
+
+            if (signOutButton) {
+                signOutButton.addEventListener("click", () => {
+                    if (confirm("Are you sure you want to sign out?")) {
+                        // Remove user session from localStorage
+                        localStorage.removeItem("loggedInUser");
+
+                        // Redirect to login page
+                        window.location.href = "{{ url_for('login') }}";
+                    }
+                });
+            }
+        });
+    </script>
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('law') }}">Law</a>
+        <a href="{{ url_for('health') }}">Health</a>
+        <a href="{{ url_for('technology') }}">Technology</a>
+        <a href="{{ url_for('finance') }}">Finance</a>
+        <a href="{{ url_for('research') }}">Research</a>
+        <a href="{{ url_for('education') }}">Education</a>
+        <button id="signout-btn" class="signout">Sign Out</button>
+    </nav>
+    
+
+    <section class="hero">
+        <h1>Welcome to IntelliSphere6 </h1>
+        <p>Your gateway to Law, Health, Technology, Finance, Research, and Education.</p>
+    </section>
+
+    <section class="domain-container">
+        <div class="domain">
+            <img src="https://cdn-icons-png.flaticon.com/128/4252/4252296.png" alt="Law Icon">
+            <h2>Law</h2>
+            <p>Explore legal systems, policies, and international laws shaping the world.</p>
+        </div>
+        <div class="domain">
+            <img src="https://cdn-icons-png.flaticon.com/128/2966/2966327.png" alt="Health Icon">
+            <h2>Health</h2>
+            <p>Discover insights into healthcare, medical advancements, and global health policies.</p>
+        </div>
+        <div class="domain">
+            <img src="https://cdn-icons-png.flaticon.com/128/8055/8055545.png" alt="Tech Icon">
+            <h2>Technology</h2>
+            <p>Stay updated with the latest trends in AI, software development, and tech innovations.</p>
+        </div>
+        <div class="domain">
+            <img src="https://cdn-icons-png.flaticon.com/128/781/781831.png" alt="Finance Icon">
+            <h2>Finance</h2>
+            <p>Learn about financial markets, investments, and economic trends shaping the world.</p>
+        </div>
+        <div class="domain">
+            <img src="https://cdn-icons-png.flaticon.com/128/6012/6012178.png" alt="Research Icon">
+            <h2>Research</h2>
+            <p>Dive into scientific studies, academic breakthroughs, and research methodologies.</p>
+        </div>
+        <div class="domain">
+            <img src="https://cdn-icons-png.flaticon.com/128/201/201614.png" alt="Education Icon">
+            <h2>Education</h2>
+            <p>Explore learning trends, educational policies, and innovations in academia.</p>
+        </div>
+    </section>
+    <section class="articles">
+        <h2>Featured Articles</h2>
+        <div class="article">
+            <h3>The Future of AI in Healthcare</h3>
+            <p>AI is revolutionizing the healthcare industry, improving diagnostics and patient care.</p>
+        </div>
+        <div class="article">
+            <h3>Financial Markets in 2025</h3>
+            <p>An in-depth look at what the future holds for global economies and investments.</p>
+        </div>
+    </section>
+
+    <section class="testimonials">
+        <h2>What Our Users Say</h2>
+        <p class="testimonial">"This platform is an incredible resource for staying updated on global affairs!" - John D.</p>
+        <p class="testimonial">"I love the depth of research and the clarity in each article." - Sarah P.</p>
+    </section>
+
+    <footer>
+        <p>© 2025 Knowledge Hub. All rights reserved.</p>
+    </footer>
+</body>
+</html>
