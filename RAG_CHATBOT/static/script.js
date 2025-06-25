@@ -27,11 +27,8 @@ document.addEventListener("DOMContentLoaded", function () {
         return `chatSessions_${currentDomain}`;
     }
 
-    // Initialize the next session ID to use
-    let nextSessionId = parseInt(localStorage.getItem(`nextSessionId_${currentDomain}`)) || 1;
-    
     // Current session being viewed
-    let currentSessionId = localStorage.getItem(`currentSessionId_${currentDomain}`) || Date.now().toString();
+    let currentSessionId = localStorage.getItem(`currentSessionId_${currentDomain}`) || null;
 
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
@@ -135,8 +132,11 @@ document.addEventListener("DOMContentLoaded", function () {
             const data = await response.json();
             loadingIndicator.style.display = "none";
             
-            if (data.history) {
+            if (data.history && data.history.length > 0) {
                 renderMessages(data.history);
+            } else {
+                // Empty session - show a welcome message or keep empty
+                console.log(`Session ${sessionId} is empty - showing clean chat`);
             }
         } catch (error) {
             loadingIndicator.style.display = "none";
@@ -173,10 +173,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     async function createNewSession() {
-        // Generate a new session ID using timestamp
-        const newSessionId = Date.now().toString();
+    // Generate a new session ID using timestamp + random component
+        const newSessionId = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
         
-        // Tell the backend to create a new session
+        console.log(`Creating new session: ${newSessionId} for domain: ${currentDomain}`);
+        
         try {
             const response = await fetch("/create_new_session", {
                 method: "POST",
@@ -204,17 +205,40 @@ document.addEventListener("DOMContentLoaded", function () {
                 currentSessionId = newSessionId;
                 localStorage.setItem(`currentSessionId_${currentDomain}`, currentSessionId);
                 
-                // Clear the chat container
+                // Clear the chat container for the new session
                 chatContainer.innerHTML = "";
                 
                 // Update UI
                 loadSessions();
                 highlightActiveSession();
+                
+                console.log(`Successfully created new session: ${newSessionId}`);
+                return true;
+            } else {
+                console.error("Failed to create new session:", data);
+                return false;
             }
         } catch (error) {
             console.error("Error creating new session:", error);
             chatContainer.innerHTML += `<div class="message ai-message error">❌ Error creating new session: ${error}</div>`;
+            return false;
         }
+    }
+
+    // Fixed loadSession function to ensure clean loading
+    function loadSession(sessionId) {
+        console.log(`Switching to session ID: ${sessionId} from previous ${currentSessionId}`);
+        
+        // Clear the chat container immediately
+        chatContainer.innerHTML = "";
+        
+        currentSessionId = sessionId;
+        // Store current session ID in localStorage so it persists across refreshes
+        localStorage.setItem(`currentSessionId_${currentDomain}`, currentSessionId);
+        
+        // Load the session history
+        fetchAndRenderChatHistory(sessionId);
+        highlightActiveSession();
     }
 
     async function deleteSession(sessionId) {
@@ -250,6 +274,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         });
                         
                         currentSessionId = sortedIds[0];
+                        localStorage.setItem(`currentSessionId_${currentDomain}`, currentSessionId);
                         loadSession(currentSessionId);
                     } else {
                         // No sessions left, create a new one
@@ -258,6 +283,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 
                 loadSessions();
+                console.log(`Deleted session: ${sessionId}`);
             }
         } catch (error) {
             console.error("Error deleting session:", error);
@@ -268,16 +294,23 @@ document.addEventListener("DOMContentLoaded", function () {
     submitBtn.addEventListener("click", async function () {
         let query = userInput.value.trim();
         if (!query) return;
-    
+        
+        // Make sure we have a current session
+        if (!currentSessionId) {
+            await createNewSession();
+            // Wait a bit to ensure session is created
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+
         // Log session ID for debugging
         console.log(`Sending query with session ID: ${currentSessionId}, domain: ${currentDomain}`);
-    
+
         // Display user message right away
         chatContainer.innerHTML += `<div class="message user-message"><p>${query}</p></div>`;
         userInput.value = "";
         chatContainer.scrollTop = chatContainer.scrollHeight;
         loadingIndicator.style.display = "block";
-    
+
         try {
             const response = await fetch("/chat", {
                 method: "POST",
@@ -288,10 +321,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     session_id: currentSessionId
                 }),
             });
-    
+
             const data = await response.json();
             loadingIndicator.style.display = "none";
-    
+
             if (data.error) {
                 chatContainer.innerHTML += `<div class="message ai-message error">❌ ${data.error}</div>`;
             } else {
@@ -332,7 +365,7 @@ document.addEventListener("DOMContentLoaded", function () {
             await createNewSession();
         } else {
             // Check if the current session ID exists
-            if (!sessions[currentSessionId]) {
+            if (!currentSessionId || !sessions[currentSessionId]) {
                 // Current session doesn't exist, use the newest one
                 const sortedIds = Object.keys(sessions).sort((a, b) => {
                     return sessions[b].createdAt - sessions[a].createdAt;
@@ -344,6 +377,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 } else {
                     // No valid sessions, create a new one
                     await createNewSession();
+                    return; // Exit early since createNewSession will handle the rest
                 }
             }
             
