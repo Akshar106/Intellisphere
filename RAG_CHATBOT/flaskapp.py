@@ -11,11 +11,12 @@ from langchain_community.vectorstores import FAISS
 from werkzeug.security import check_password_hash, generate_password_hash
 from bson.binary import Binary
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, GoogleGenerativeAI
+import time
 
 load_dotenv()
 
 # Initialize MongoDB client first
-MONGO_URI = os.getenv("MONGO_URI", "your_url")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
 client = MongoClient(MONGO_URI)
 db = client["intellisphere6"]
 users_collection = db["users"]
@@ -34,13 +35,6 @@ app.config["SESSION_MONGODB_COLLECTION"] = "sessions"
 app.config["SESSION_PERMANENT"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=31)
 Session(app)
-
-# def hash_password(password):
-#     salt = bcrypt.gensalt()
-#     return bcrypt.hashpw(password.encode("utf-8"), salt)
-
-# def check_password(stored_hash, password):
-#     return bcrypt.checkpw(password.encode("utf-8"), stored_hash)
 
 @app.route("/signup", methods=["POST"])
 def signup():
@@ -80,10 +74,6 @@ def login():
 
         if user and check_password_hash(user["password"], password):
             session["user"] = email
-            
-            # No need to load all histories here, they'll be loaded when needed
-            # based on domain access
-            
             return jsonify({"success": True, "message": "Login successful!"})
 
         return jsonify({"success": False, "message": "Invalid email or password."})
@@ -132,9 +122,6 @@ def load_vectorstore(domain):
         # Check if index files exist
         if os.path.exists(f"{index_path}/index.faiss") and os.path.exists(f"{index_path}/index.pkl"):
             vectorstore = FAISS.load_local(index_path, embedder, allow_dangerous_deserialization=True)
-            # Create a retriever with the embedding model
-            # retriever = vectorstore.as_retriever()
-            # Cache the retriever instead of the vectorstore
             vectorstore_cache[domain] = vectorstore
             print(f"✅ Loaded FAISS index for domain: {domain} using sentence_transformers embeddings")
             return vectorstore
@@ -172,6 +159,11 @@ def chat():
     user_email = session["user"]
     data = request.json
     query = data.get("query", "")
+    session_id = data.get("session_id")
+    
+    # Validate session_id
+    if not session_id:
+        return jsonify({"error": "Session ID is required"}), 400
     
     # Get domain information
     raw_referrer = request.headers.get('Referer', '')
@@ -182,78 +174,105 @@ def chat():
             domain = domain_name
             break
     
+    # Also check if domain is provided in the request data
+    if data.get("domain"):
+        domain = data.get("domain")
+    
+    print(f"Processing chat for user: {user_email}, domain: {domain}, session: {session_id}, query: {query}")
+    
     # Load the appropriate retriever for this domain
     retriever = load_vectorstore(domain)
     if not retriever:
         return jsonify({"error": f"FAISS index not loaded for domain: {domain}!"})
 
     try:
-        # Use the retriever directly
-        relevant_docs = retriever.similarity_search(query)
-        context = "\n\n".join([doc.page_content for doc in relevant_docs])
-
-        # Get user's chat history for this domain from database
+        # Get user's chat history for this specific session FIRST
         history_filter = {
             "user_email": user_email,
-            "domain": domain
+            "domain": domain,
+            "session_id": session_id
         }
         
         user_history = chat_history_collection.find_one(history_filter)
         
         if not user_history:
+            # Create the session if it doesn't exist
+            chat_history_collection.insert_one({
+                "user_email": user_email,
+                "domain": domain,
+                "session_id": session_id,
+                "messages": [],
+                "created_at": int(time.time())  # Use proper timestamp
+            })
             history = []
+            print(f"Created new session record for {session_id}")
         else:
             history = user_history.get("messages", [])
+            print(f"Found existing session {session_id} with {len(history)} messages")
         
-        # Use only the last 5 messages for context
-        recent_history = history[-5:] if len(history) > 5 else history
-        conversation_context = "\n".join([f"User: {h['user']}\nBot: {h['bot']}" for h in recent_history])
+        # Only get FAISS context for the current query - make it more specific
+        relevant_docs = retriever.similarity_search(query, k=3)  # Limit to top 3 most relevant
+        context = "\n\n".join([doc.page_content for doc in relevant_docs])
         
-        # Your existing prompt code
+        # Build conversation context ONLY from this session's history
+        conversation_context = ""
+        if len(history) > 0:
+            # Use only the last 2 exchanges to keep context focused
+            recent_history = history[-2:] if len(history) > 2 else history
+            conversation_parts = []
+            for h in recent_history:
+                conversation_parts.append(f"Previous User Question: {h['user']}")
+                conversation_parts.append(f"Previous Assistant Response: {h['bot'][:200]}...")  # Truncate long responses
+            conversation_context = "\n".join(conversation_parts)
+        
+        # Create a focused prompt that emphasizes new, fresh responses
+        if conversation_context:
+            context_section = f"""
+🧠 SESSION CONTEXT (for continuity only):
+{conversation_context}
+
+⚠️ IMPORTANT: This is a NEW question. Provide a fresh, complete answer. Do not assume the user is continuing the exact same topic unless explicitly stated.
+"""
+        else:
+            context_section = """
+🧠 SESSION STATUS: This is the beginning of a new conversation session.
+"""
+        
         strict_prompt = f"""
-        You are IntelliSphere, an expert AI assistant specializing in {domain.capitalize()} knowledge. 
-        Your mission is to provide insightful, accurate, and comprehensive answers using domain-specific expertise.
+You are IntelliSphere, an expert AI assistant specializing in {domain.capitalize()} knowledge.
 
-        ---
+---
 
-        📚 CONTEXT GUIDELINES
-        Base all responses exclusively on the following verified documents:
-        {context}
+📚 RELEVANT INFORMATION:
+{context}
 
-        🧠 CONVERSATION HISTORY
-        Maintain conversational flow by considering:
-        {conversation_context}
+{context_section}
 
-        ❓ NEW QUESTION
-        Address the following query:
-        {query}
+❓ CURRENT QUESTION:
+{query}
 
-        ---
+---
 
-        🔍 RESPONSE INSTRUCTIONS
-        Always follow this structure:
+🎯 RESPONSE GUIDELINES:
 
-        1. Begin with a warm, professional greeting that acknowledges the user's specific question.
-        2. Provide a thorough, structured answer based on the context:
-        - Break down complex concepts into simple explanations.
-        - Include examples, figures, or data points if available.
-        - Naturally insert emojis where appropriate to enhance clarity, friendliness, or emphasis (e.g., ✅, 📈, 💡, 🤔, etc.).
-        3. Maintain a confident yet conversational tone, like speaking to a respected colleague.
-        4. Organize longer answers with headings, bullet points, or numbered lists for easy reading.
-        5. End with a brief summary and warmly invite follow-up questions.
+1. **Treat this as a fresh question** - provide a complete, standalone answer
+2. **Use the relevant information above** to give accurate, detailed responses
+3. **Be conversational and helpful** - include appropriate emojis for engagement
+4. **Structure your response clearly** with headings, bullet points, or lists when helpful
+5. **If you don't have enough information**, clearly state what you cannot answer
 
-        ---
+---
 
-        🚨 IMPORTANT
-        If the provided context is insufficient to fully answer the question, respond:
+🚨 CRITICAL RULES:
+- Each response should be complete and self-contained
+- Only reference previous messages if the user explicitly asks about them
+- Focus on answering the current question thoroughly
+- Use the {domain} knowledge base provided above
 
-        "Based on the available {domain} information, I don't have enough specific data to properly answer your question about [topic]. Would you like me to help with a related aspect I can address, or clarify your question?"
+---
 
-        ---
-
-        🎯 GOAL
-        Deliver expertise with clarity, warmth, and a human touch — **be insightful, precise, and approachable**, enhancing engagement through selective emoji use when it adds value to understanding or tone.
-        """
+Please provide a helpful, accurate response to the user's question:
+"""
         
         llm = GoogleGenerativeAI(model="gemini-2.0-flash")
         response = llm.invoke(strict_prompt)
@@ -262,21 +281,21 @@ def chat():
         new_message = {"user": query, "bot": response}
         history.append(new_message)
         
-        # Update or insert the chat history in the database
-        chat_history_collection.update_one(
+        # Update the chat history in the database
+        update_result = chat_history_collection.update_one(
             history_filter,
-            {"$set": {"messages": history}},
+            {"$set": {"messages": history, "last_updated": int(time.time())}},
             upsert=True
         )
         
-        # For the current session, also keep the history
-        history_key = f"chat_history_{domain}"
-        session[history_key] = history
-        session.modified = True
+        print(f"Updated session {session_id}: matched={update_result.matched_count}, modified={update_result.modified_count}")
         
         return jsonify({"history": history})
+        
     except Exception as e:
         print(f"Error processing query: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": f"Error processing query: {str(e)}"}), 500
 
 @app.route("/create_new_session", methods=["POST"])
@@ -285,39 +304,40 @@ def create_new_session():
         return jsonify({"error": "Please log in to continue"}), 401
         
     user_email = session["user"]
-    domain = get_domain_from_request()
+    data = request.json
+    domain = data.get("domain", "home")
+    session_id = data.get("session_id")
     
-    # Create a new unique session ID
-    new_session_id = secrets.token_hex(8)
+    # If no session_id provided, create one
+    if not session_id:
+        session_id = secrets.token_hex(8)
     
-    # Update the database to mark this as a new session
+    # Create a new session in the database
     chat_history_collection.insert_one({
         "user_email": user_email,
         "domain": domain,
-        "session_id": new_session_id,
-        "messages": []
+        "session_id": session_id,
+        "messages": [],
+        "created_at": secrets.token_hex(8)  # Add timestamp for sorting
     })
     
-    # Clear the session history
-    history_key = f"chat_history_{domain}"
-    session[history_key] = []
-    session.modified = True
-    
-    return jsonify({"success": True, "session_id": new_session_id})
+    return jsonify({"success": True, "session_id": session_id})
 
-# Add route for retrieving session history
 @app.route("/get_session_history", methods=["POST"])
 def get_session_history():
     if "user" not in session:
         return jsonify({"error": "Please log in to continue"}), 401
         
     user_email = session["user"]
-    domain = get_domain_from_request()
+    data = request.json
+    domain = data.get("domain", "home")
+    session_id = data.get("session_id")
     
-    # Get user's chat history for this domain from database
+    # Get user's chat history for this specific session
     user_history = chat_history_collection.find_one({
         "user_email": user_email,
-        "domain": domain
+        "domain": domain,
+        "session_id": session_id  # Include session_id in the filter
     })
     
     if not user_history:
@@ -325,43 +345,54 @@ def get_session_history():
     else:
         history = user_history.get("messages", [])
     
-    # Update session with the history from the database
-    history_key = f"chat_history_{domain}"
-    session[history_key] = history
-    session.modified = True
-    
     return jsonify({"history": history})
 
-# Add route for deleting session
 @app.route("/delete_session", methods=["POST"])
 def delete_session():
     if "user" not in session:
         return jsonify({"error": "Please log in to continue"}), 401
         
     user_email = session["user"]
-    domain = get_domain_from_request()
-    session_id = request.json.get("session_id")
+    data = request.json
+    domain = data.get("domain", "home")
+    session_id = data.get("session_id")
     
-    # Delete the session from the database
+    # Delete the specific session from the database
     if session_id:
-        chat_history_collection.delete_one({
+        result = chat_history_collection.delete_one({
             "user_email": user_email,
             "domain": domain,
             "session_id": session_id
         })
+        print(f"Deleted {result.deleted_count} session(s) for user {user_email}, domain {domain}, session {session_id}")
     else:
         # If no session ID provided, clear all sessions for this user in this domain
-        chat_history_collection.delete_many({
+        result = chat_history_collection.delete_many({
             "user_email": user_email,
             "domain": domain
         })
-    
-    # Clear the session history
-    history_key = f"chat_history_{domain}"
-    session[history_key] = []
-    session.modified = True
+        print(f"Deleted {result.deleted_count} session(s) for user {user_email}, domain {domain}")
     
     return jsonify({"success": True})
+
+@app.route("/get_all_sessions", methods=["POST"])
+def get_all_sessions():
+    """Get all sessions for a user in a specific domain"""
+    if "user" not in session:
+        return jsonify({"error": "Please log in to continue"}), 401
+        
+    user_email = session["user"]
+    data = request.json
+    domain = data.get("domain", "home")
+    
+    # Get all sessions for this user and domain
+    sessions = chat_history_collection.find({
+        "user_email": user_email,
+        "domain": domain
+    }, {"session_id": 1, "created_at": 1, "_id": 0})
+    
+    session_list = list(sessions)
+    return jsonify({"sessions": session_list})
 
 @app.route("/")
 def login_page():
