@@ -15,19 +15,16 @@ import time
 
 load_dotenv()
 
-# Initialize MongoDB client first
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
 client = MongoClient(MONGO_URI)
 db = client["intellisphere6"]
 users_collection = db["users"]
 chat_history_collection = db["chat_histories"]
 
-# Then initialize Flask app and configure it
 app = Flask(__name__, static_folder="static")
 CORS(app)
 app.secret_key = secrets.token_hex(32)
 
-# Set up session configuration
 app.config["SESSION_TYPE"] = "mongodb"
 app.config["SESSION_MONGODB"] = client
 app.config["SESSION_MONGODB_DB"] = "intellisphere6"
@@ -92,19 +89,17 @@ DOMAIN_INDEXES = {
     "technology": "faiss_indexes/technology",
     "education": "faiss_indexes/education",
     "research": "faiss_indexes/research",
-    "home": "faiss_indexes/general"  # Default domain
+    "home": "faiss_indexes/general" 
 }
 
-# Cache for loaded vector stores to avoid reloading
 vectorstore_cache = {}
 
 def load_vectorstore(domain):
     """Load the FAISS index for the specified domain using sentence transformers embedding model"""
-    # Return from cache if already loaded
+   
     if domain in vectorstore_cache:
         return vectorstore_cache[domain]
     
-    # Get the path for the specified domain or use general as fallback
     index_path = DOMAIN_INDEXES.get(domain, DOMAIN_INDEXES["home"])
     abs_path = os.path.abspath(index_path)
     faiss_file = f"{index_path}/index.faiss"
@@ -115,11 +110,9 @@ def load_vectorstore(domain):
     print(f"PKL file exists: {os.path.exists(pkl_file)}")
     
     try:
-        # Use SentenceTransformers for all domains
         from langchain_community.embeddings import HuggingFaceEmbeddings
         embedder = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         
-        # Check if index files exist
         if os.path.exists(f"{index_path}/index.faiss") and os.path.exists(f"{index_path}/index.pkl"):
             vectorstore = FAISS.load_local(index_path, embedder, allow_dangerous_deserialization=True)
             vectorstore_cache[domain] = vectorstore
@@ -134,7 +127,6 @@ def load_vectorstore(domain):
 
 def get_domain_from_request():
     """Extract the domain from the request"""
-    # First try to get from JSON request data
     if request.is_json:
         data = request.json
         if data and "domain" in data:
@@ -142,13 +134,11 @@ def get_domain_from_request():
             if domain in DOMAIN_INDEXES:
                 return domain
     
-    # Then try to get from URL path or referrer
     path = request.referrer if request.referrer else request.path
     for domain in DOMAIN_INDEXES:
         if f"/{domain}" in path:
             return domain
     
-    # Default to home if no domain found
     return "home"
 
 @app.route("/chat", methods=["POST"])
@@ -161,11 +151,9 @@ def chat():
     query = data.get("query", "")
     session_id = data.get("session_id")
     
-    # Validate session_id
     if not session_id:
         return jsonify({"error": "Session ID is required"}), 400
     
-    # Get domain information
     raw_referrer = request.headers.get('Referer', '')
     domain = "home"
     
@@ -174,19 +162,16 @@ def chat():
             domain = domain_name
             break
     
-    # Also check if domain is provided in the request data
     if data.get("domain"):
         domain = data.get("domain")
     
     print(f"Processing chat for user: {user_email}, domain: {domain}, session: {session_id}, query: {query}")
     
-    # Load the appropriate retriever for this domain
     retriever = load_vectorstore(domain)
     if not retriever:
         return jsonify({"error": f"FAISS index not loaded for domain: {domain}!"})
 
     try:
-        # Get user's chat history for this specific session FIRST
         history_filter = {
             "user_email": user_email,
             "domain": domain,
@@ -196,13 +181,12 @@ def chat():
         user_history = chat_history_collection.find_one(history_filter)
         
         if not user_history:
-            # Create the session if it doesn't exist
             chat_history_collection.insert_one({
                 "user_email": user_email,
                 "domain": domain,
                 "session_id": session_id,
                 "messages": [],
-                "created_at": int(time.time())  # Use proper timestamp
+                "created_at": int(time.time())  
             })
             history = []
             print(f"Created new session record for {session_id}")
@@ -210,14 +194,11 @@ def chat():
             history = user_history.get("messages", [])
             print(f"Found existing session {session_id} with {len(history)} messages")
         
-        # Only get FAISS context for the current query - make it more specific
-        relevant_docs = retriever.similarity_search(query, k=3)  # Limit to top 3 most relevant
+        relevant_docs = retriever.similarity_search(query, k=3)  
         context = "\n\n".join([doc.page_content for doc in relevant_docs])
         
-        # Build conversation context ONLY from this session's history
         conversation_context = ""
         if len(history) > 0:
-            # Use only the last 2 exchanges to keep context focused
             recent_history = history[-2:] if len(history) > 2 else history
             conversation_parts = []
             for h in recent_history:
@@ -225,7 +206,6 @@ def chat():
                 conversation_parts.append(f"Previous Assistant Response: {h['bot'][:200]}...")  # Truncate long responses
             conversation_context = "\n".join(conversation_parts)
         
-        # Create a focused prompt that emphasizes new, fresh responses
         if conversation_context:
             context_section = f"""
 🧠 SESSION CONTEXT (for continuity only):
@@ -277,7 +257,6 @@ Please provide a helpful, accurate response to the user's question:
         llm = GoogleGenerativeAI(model="gemini-2.0-flash")
         response = llm.invoke(strict_prompt)
         
-        # Add the new message to history
         new_message = {"user": query, "bot": response}
         history.append(new_message)
         
@@ -318,7 +297,7 @@ def create_new_session():
         "domain": domain,
         "session_id": session_id,
         "messages": [],
-        "created_at": secrets.token_hex(8)  # Add timestamp for sorting
+        "created_at": secrets.token_hex(8)  
     })
     
     return jsonify({"success": True, "session_id": session_id})
@@ -333,11 +312,10 @@ def get_session_history():
     domain = data.get("domain", "home")
     session_id = data.get("session_id")
     
-    # Get user's chat history for this specific session
     user_history = chat_history_collection.find_one({
         "user_email": user_email,
         "domain": domain,
-        "session_id": session_id  # Include session_id in the filter
+        "session_id": session_id 
     })
     
     if not user_history:
@@ -430,6 +408,5 @@ def research():
 def education():
     return render_template("education.html", domain = "education")
 
-# Run Flask App
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False)
