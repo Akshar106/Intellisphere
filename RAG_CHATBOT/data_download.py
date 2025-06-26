@@ -3,18 +3,15 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
-# Base URL
 BASE_URL = "https://legalaffairs.gov.in/media/e-book"
 
-# Folder to save PDFs
 SAVE_FOLDER = "downloaded_pdfs34"
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 
-# Track already downloaded PDFs
 downloaded_pdfs = set(os.listdir(SAVE_FOLDER))
 
 def download_pdfs(url):
-    pdf_count = len(downloaded_pdfs) + 1  # Start numbering from last saved file
+    pdf_count = len(downloaded_pdfs) + 1  #
 
     while url:
         response = requests.get(url)
@@ -58,14 +55,12 @@ def download_pdfs(url):
             except Exception as e:
                 print(f"Failed to download {pdf_url}: {e}")
 
-        # Find the "Next »" button and navigate to the next page
         next_page_tag = soup.find("a", string=lambda text: text and "Next »" in text)
         if next_page_tag and "href" in next_page_tag.attrs:
             url = urljoin(url, next_page_tag["href"])
             print(f"Moving to next page: {url}")
         else:
             print("No more pages found.")
-            break  # Stop if there's no next page
+            break  
 
-# Start the script
 download_pdfs(BASE_URL)
