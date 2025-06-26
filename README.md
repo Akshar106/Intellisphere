@@ -209,6 +209,11 @@ Health Page :
 ![image](https://github.com/user-attachments/assets/714481e5-41df-4e33-9587-90d7a4be1c6f)
 ![image](https://github.com/user-attachments/assets/21ccb9ca-916e-4dd4-a31e-d16fc7c959fc)
 
+It wont answer the questions that are not related to health (I have passed the health data only)
+![image](https://github.com/user-attachments/assets/c7d18f93-f697-4b2f-b5ca-0841130612be)
+
+
+
 
 
 
