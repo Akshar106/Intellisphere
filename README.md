@@ -194,6 +194,29 @@ The application runs in debug mode by default. Disable for production:
 app.run(debug=False)
 ```
 
+### Demo
+Login and signup page : 
+![WhatsApp Image 2025-06-24 at 20 53 38_ad2777b3](https://github.com/user-attachments/assets/6ff86727-994c-4506-83bf-3bc69ab3fe9d)
+
+Home Page : 
+![WhatsApp Image 2025-06-24 at 21 07 31_a32d61d6](https://github.com/user-attachments/assets/ce6533f9-5c4c-49cf-b229-8fab069204f1)
+
+Law Page : 
+![image](https://github.com/user-attachments/assets/648a14e7-910d-41b8-84db-55b2ff047d5c)
+![image](https://github.com/user-attachments/assets/c48cf510-3fc3-4e56-831a-bce5c80f0a55)
+
+Health Page : 
+![image](https://github.com/user-attachments/assets/714481e5-41df-4e33-9587-90d7a4be1c6f)
+![image](https://github.com/user-attachments/assets/21ccb9ca-916e-4dd4-a31e-d16fc7c959fc)
+
+
+
+
+
+
+
+
+
 
 
 
