@@ -212,7 +212,7 @@ Health Page :
 It wont answer the questions that are not related to health (I have passed the health data only)
 ![image](https://github.com/user-attachments/assets/c7d18f93-f697-4b2f-b5ca-0841130612be)
 
-The other domains are in process :)
+The other domains are in process :))
 Stay Tuned!!
 
 
