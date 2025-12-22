@@ -14,27 +14,28 @@ from google.genai import types
 import time
 from authlib.integrations.flask_client import OAuth
 from functools import wraps
-oauth = OAuth(app)
 
-# Configure Google OAuth
-google = oauth.register(
-    name='google',
-    client_id='YOUR_GOOGLE_CLIENT_ID',
-    client_secret='YOUR_GOOGLE_CLIENT_SECRET',
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={'scope': 'openid email profile'}
-)
+# oauth = OAuth(app)
 
-# Configure GitHub OAuth
-github = oauth.register(
-    name='github',
-    client_id='YOUR_GITHUB_CLIENT_ID',
-    client_secret='YOUR_GITHUB_CLIENT_SECRET',
-    access_token_url='https://github.com/login/oauth/access_token',
-    authorize_url='https://github.com/login/oauth/authorize',
-    api_base_url='https://api.github.com/',
-    client_kwargs={'scope': 'user:email'}
-)
+# # Configure Google OAuth
+# google = oauth.register(
+#     name='google',
+#     client_id='YOUR_GOOGLE_CLIENT_ID',
+#     client_secret='YOUR_GOOGLE_CLIENT_SECRET',
+#     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+#     client_kwargs={'scope': 'openid email profile'}
+# )
+
+# # Configure GitHub OAuth
+# github = oauth.register(
+#     name='github',
+#     client_id='YOUR_GITHUB_CLIENT_ID',
+#     client_secret='YOUR_GITHUB_CLIENT_SECRET',
+#     access_token_url='https://github.com/login/oauth/access_token',
+#     authorize_url='https://github.com/login/oauth/authorize',
+#     api_base_url='https://api.github.com/',
+#     client_kwargs={'scope': 'user:email'}
+# )
 load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
@@ -409,32 +410,32 @@ def get_all_sessions():
     session_list = list(sessions)
     return jsonify({"sessions": session_list})
 
-@app.route('/auth/google')
-def google_login():
-    redirect_uri = url_for('google_callback', _external=True)
-    return google.authorize_redirect(redirect_uri)
+# @app.route('/auth/google')
+# def google_login():
+#     redirect_uri = url_for('google_callback', _external=True)
+#     return google.authorize_redirect(redirect_uri)
 
-@app.route('/auth/google/callback')
-def google_callback():
-    token = google.authorize_access_token()
-    user_info = google.parse_id_token(token)
-    # Create or login user, set session
-    session['user'] = user_info['email']
-    return redirect('/home')
+# @app.route('/auth/google/callback')
+# def google_callback():
+#     token = google.authorize_access_token()
+#     user_info = google.parse_id_token(token)
+#     # Create or login user, set session
+#     session['user'] = user_info['email']
+#     return redirect('/home')
 
-@app.route('/auth/github')
-def github_login():
-    redirect_uri = url_for('github_callback', _external=True)
-    return github.authorize_redirect(redirect_uri)
+# @app.route('/auth/github')
+# def github_login():
+#     redirect_uri = url_for('github_callback', _external=True)
+#     return github.authorize_redirect(redirect_uri)
 
-@app.route('/auth/github/callback')
-def github_callback():
-    token = github.authorize_access_token()
-    resp = github.get('user', token=token)
-    user_info = resp.json()
-    # Create or login user, set session
-    session['user'] = user_info['email']
-    return redirect('/home')
+# @app.route('/auth/github/callback')
+# def github_callback():
+#     token = github.authorize_access_token()
+#     resp = github.get('user', token=token)
+#     user_info = resp.json()
+#     # Create or login user, set session
+#     session['user'] = user_info['email']
+#     return redirect('/home')
 
 # Route definitions with authentication
 @app.route("/")
