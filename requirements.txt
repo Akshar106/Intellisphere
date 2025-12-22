@@ -1,11 +1,10 @@
-python-dotenv
 flask
 flask-cors
+flask-session
+python-dotenv
 pymongo
-Flask-Session
 werkzeug
-bson
-langchain
 langchain-community
-langchain-google-genai
 faiss-cpu
+google-generativeai
+authlib
