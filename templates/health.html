@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health - IntelliSphere6</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* General styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #2c3e50;
+            min-height: 100vh;
+        }
+
+        /* Navigation Bar */
+        nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 20px 30px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 3px;
+            background: white;
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+
+        nav a:hover::after, nav a.active::after {
+            width: 80%;
+        }
+
+        nav a:hover, nav a.active {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Session Panel */
+        .session-panel {
+            width: 280px;
+            height: calc(100vh - 80px);
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            position: fixed;
+            top: 80px;
+            left: 20px;
+        }
+
+        .new-session-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .new-session-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        #session-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 10px;
+        }
+
+        #session-list li {
+            padding: 15px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #2c3e50;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            font-weight: 500;
+            border: 2px solid transparent;
+        }
+
+        #session-list li:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .active-session {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            font-weight: 600;
+            border: 2px solid #667eea !important;
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex-grow: 1;
+            max-width: calc(100% - 340px);
+            height: calc(100vh - 180px);
+            background: white;
+            padding: 30px;
+            padding-bottom: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            margin-left: 320px;
+            margin-top: 20px;
+            margin-right: 20px;
+            margin-bottom: 100px;
+        }
+
+        /* Chat Messages */
+        .message {
+            word-wrap: break-word;
+            max-width: 75%;
+            font-size: 16px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 20px 20px 5px 20px;
+            text-align: right;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .ai-message {
+            align-self: flex-start;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+            color: #2c3e50;
+            padding: 15px 20px;
+            border-radius: 20px 20px 20px 5px;
+            text-align: left;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Bottom Bar (Chat Input) */
+        #bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 320px;
+            right: 20px;
+            display: flex;
+            padding: 20px;
+            background: white;
+            border-radius: 15px 15px 0 0;
+            box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.1);
+            gap: 15px;
+        }
+
+        #text-input {
+            flex-grow: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        #text-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        #submit-btn {
+            padding: 15px 35px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        #submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        #submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Loading Indicator */
+        #loading-indicator {
+            display: none;
+            font-size: 16px;
+            margin: 20px;
+            color: #667eea;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        #loading-indicator::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        /* Scrollbar Styling */
+        .chat-container::-webkit-scrollbar,
+        .session-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-container::-webkit-scrollbar-track,
+        .session-panel::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb,
+        .session-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 900px) {
+            .session-panel {
+                position: static;
+                width: calc(100% - 40px);
+                height: auto;
+                margin: 20px;
+                max-height: 300px;
+            }
+
+            .chat-container {
+                margin-left: 20px;
+                max-width: calc(100% - 40px);
+                height: calc(100vh - 500px);
+            }
+
+            #bottom-bar {
+                left: 20px;
+            }
+
+            nav {
+                flex-direction: column;
+                padding: 10px;
+            }
+
+            .nav-links {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            nav a {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('law') }}">Law</a>
+            <a href="{{ url_for('health') }}" class="active">Health</a>
+        </div>
+    </nav>
+
+    <!-- Session Panel -->
+    <div class="session-panel">
+        <button id="new-session-btn" class="new-session-btn">➕ New Chat</button>
+        <ul id="session-list"></ul>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container" id="chat-container"></div>
+    
+    <div id="loading-indicator">
+        <p>Processing your request... Please wait</p>
+    </div>
+    
+    <!-- Bottom Bar for Input -->
+    <div id="bottom-bar">
+        <input type="text" id="text-input" placeholder="Ask Health related question here...">
+        <button id="submit-btn">Send</button>
+    </div>
+
+    <script>
+        const currentDomain = "{{ domain }}";
+        console.log("Current domain:", currentDomain);
+    </script>
+    <script defer src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

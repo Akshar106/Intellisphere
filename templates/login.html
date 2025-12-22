@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - IntelliSphere</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+
+    .left-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px;
+      position: relative;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 40px;
+    }
+
+    .logo {
+      width: 60px;
+      height: 60px;
+    }
+
+    .logo-text {
+      font-size: 2em;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .welcome-box {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .welcome-box h1 {
+      font-size: 2.5em;
+      color: #2c3e50;
+      margin-bottom: 15px;
+      font-weight: 700;
+    }
+
+    .welcome-box p {
+      font-size: 1.1em;
+      color: #5a6c7d;
+      line-height: 1.6;
+    }
+
+    .login-card {
+      background: white;
+      padding: 50px 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 450px;
+    }
+
+    .form-group {
+      margin-bottom: 25px;
+      position: relative;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 20px;
+      color: #667eea;
+      font-size: 20px;
+      font-weight: bold;
+      z-index: 1;
+    }
+
+    .input-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: #667eea;
+    }
+
+    input {
+      width: 100%;
+      padding: 18px 20px 18px 55px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      background: #f8f9fa;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+      background: white;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    input::placeholder {
+      color: #adb5bd;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      margin-top: 10px;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .signup-link {
+      text-align: center;
+      margin-top: 25px;
+      color: #5a6c7d;
+      font-size: 15px;
+    }
+
+    .signup-link a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .signup-link a:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    #error-message {
+      padding: 12px 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+      display: none;
+    }
+
+    #error-message.error {
+      background: #fee;
+      color: #c33;
+      border: 1px solid #fcc;
+      display: block;
+    }
+
+    #error-message.success {
+      background: #efe;
+      color: #3c3;
+      border: 1px solid #cfc;
+      display: block;
+    }
+
+    .right-section {
+      flex: 1;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .domain-visualization {
+      position: relative;
+      width: 500px;
+      height: 500px;
+    }
+
+    .central-sphere {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 180px;
+      height: 180px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 0 60px rgba(102, 126, 234, 0.6);
+      animation: pulse 3s ease-in-out infinite;
+      z-index: 2;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        box-shadow: 0 0 60px rgba(102, 126, 234, 0.6);
+        transform: translate(-50%, -50%) scale(1);
+      }
+      50% {
+        box-shadow: 0 0 80px rgba(102, 126, 234, 0.8);
+        transform: translate(-50%, -50%) scale(1.05);
+      }
+    }
+
+    .central-sphere h2 {
+      color: white;
+      font-size: 1.6em;
+      margin: 0;
+      font-weight: 700;
+    }
+
+    .central-sphere p {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.85em;
+      margin-top: 5px;
+    }
+
+    .domain-node {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      background: rgba(0, 242, 254, 0.1);
+      border: 2px solid #00f2fe;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .domain-node:hover {
+      background: rgba(0, 242, 254, 0.2);
+      transform: scale(1.1);
+      box-shadow: 0 0 30px rgba(0, 242, 254, 0.5);
+    }
+
+    .domain-node svg {
+      width: 45px;
+      height: 45px;
+      margin-bottom: 8px;
+      fill: none;
+      stroke: #00f2fe;
+      stroke-width: 2;
+    }
+
+    .domain-node h3 {
+      color: #00f2fe;
+      font-size: 1em;
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .domain-node:nth-child(2) {
+      top: 5%;
+      left: 10%;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    .domain-node:nth-child(3) {
+      top: 5%;
+      right: 10%;
+      animation: float 5s ease-in-out infinite;
+      animation-delay: 0.5s;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-20px);
+      }
+    }
+
+    .connection-line {
+      position: absolute;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(0, 242, 254, 0.2), rgba(102, 126, 234, 0.4), rgba(0, 242, 254, 0.2));
+      transform-origin: left center;
+      z-index: 1;
+    }
+
+    .line1 {
+      top: 20%;
+      left: 20%;
+      width: 160px;
+      transform: rotate(-30deg);
+    }
+
+    .line2 {
+      top: 20%;
+      right: 20%;
+      width: 160px;
+      transform: rotate(30deg);
+    }
+
+    /* Loading Overlay */
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      backdrop-filter: blur(5px);
+    }
+
+    #loading-overlay.show-loading {
+      display: flex;
+    }
+
+    #loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 1024px) {
+      body {
+        flex-direction: column;
+      }
+
+      .right-section {
+        display: none;
+      }
+
+      .left-section {
+        padding: 40px 20px;
+      }
+
+      .login-card {
+        padding: 40px 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="left-section">
+    <div class="logo-container">
+      <svg class="logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="sphereGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <circle cx="100" cy="100" r="80" fill="url(#sphereGrad)" opacity="0.2"/>
+        <circle cx="100" cy="100" r="60" fill="none" stroke="url(#sphereGrad)" stroke-width="2" opacity="0.4"/>
+        <circle cx="100" cy="100" r="45" fill="url(#sphereGrad)"/>
+        <text x="100" y="115" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="white" text-anchor="middle">i</text>
+      </svg>
+      <span class="logo-text">IntelliSphere</span>
+    </div>
+
+    <div class="welcome-box">
+      <h1 id="title"></h1>
+      <p id="subtitle"></p>
+    </div>
+
+    <div class="login-card">
+      <p id="error-message"></p>
+
+      <form id="login-form">
+        <div class="form-group">
+          <div class="input-wrapper">
+            <span class="input-icon">@</span>
+            <input type="email" id="email-input" placeholder="Email address" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="input-wrapper">
+            <span class="input-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+            </span>
+            <input type="password" id="password-input" placeholder="Password" required>
+          </div>
+        </div>
+
+        <button type="submit" class="login-btn">LOGIN</button>
+      </form>
+
+      <div class="signup-link">
+        New here? <a href="{{ url_for('signup') }}">Create an Account</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-section">
+    <div class="domain-visualization">
+      <div class="connection-line line1"></div>
+      <div class="connection-line line2"></div>
+
+      <div class="central-sphere">
+        <h2>IntelliSphere</h2>
+        <p>Knowledge Hub</p>
+      </div>
+
+      <div class="domain-node">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+        <h3>Law</h3>
+      </div>
+
+      <div class="domain-node">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+        <h3>Health</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <div id="loading-spinner"></div>
+  </div>
+
+  <script>
+    // Typewriter effect
+    function typeWriter(element, text, delay = 50) {
+      let i = 0;
+      element.textContent = "";
+      function typing() {
+        if (i < text.length) {
+          element.textContent += text.charAt(i);
+          i++;
+          setTimeout(typing, delay);
+        }
+      }
+      typing();
+    }
+
+    window.onload = function() {
+      const title = document.getElementById("title");
+      const subtitle = document.getElementById("subtitle");
+
+      const titleText = "Welcome Back!";
+      const subtitleText = "AI-driven knowledge across multiple domains";
+
+      typeWriter(title, titleText, 80);
+      setTimeout(() => {
+        typeWriter(subtitle, subtitleText, 40);
+      }, titleText.length * 80 + 300);
+
+      // Auto-redirect if already logged in
+      const user = localStorage.getItem("user");
+      if (user) {
+        window.location.href = "/home";
+      }
+    };
+
+    // Login form submission
+    document.getElementById("login-form").addEventListener("submit", async function(e) {
+      e.preventDefault();
+
+      const email = document.getElementById("email-input").value;
+      const password = document.getElementById("password-input").value;
+      const errorMessage = document.getElementById("error-message");
+      const loadingOverlay = document.getElementById("loading-overlay");
+
+      errorMessage.className = "";
+      errorMessage.style.display = "none";
+      errorMessage.innerText = "";
+
+      loadingOverlay.classList.add("show-loading");
+
+      try {
+        const response = await fetch("/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+        loadingOverlay.classList.remove("show-loading");
+
+        if (data.success) {
+          errorMessage.className = "success";
+          errorMessage.innerText = "Login successful! Redirecting...";
+          localStorage.setItem("user", JSON.stringify(data.user));
+          setTimeout(() => {
+            window.location.href = "/home";
+          }, 1500);
+        } else {
+          errorMessage.className = "error";
+          errorMessage.innerText = data.message;
+        }
+      } catch (error) {
+        loadingOverlay.classList.remove("show-loading");
+        errorMessage.className = "error";
+        errorMessage.innerText = "Error logging in. Please try again.";
+      }
+    });
+  </script>
+</body>
+</html>
