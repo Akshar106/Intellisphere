@@ -9,4 +9,3 @@ faiss-cpu
 google-generativeai
 authlib
 beautifulsoup4
-authlib
