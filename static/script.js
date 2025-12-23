@@ -27,15 +27,58 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let currentSessionId = localStorage.getItem(`currentSessionId_${currentDomain}`) || null;
 
+    // Load marked.js for markdown parsing
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
     document.head.appendChild(script);
 
-    function formatText(text) {
-        const parsedHTML = marked.parse(text);
-        return `<div class="formatted-message">${parsedHTML}</div>`;
+    // ===== LOADING ANIMATION FUNCTIONS =====
+    
+    function showInlineLoading() {
+        // Remove any existing loading indicator
+        hideInlineLoading();
+        
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading-message';
+        loadingDiv.id = 'inline-loading';
+        loadingDiv.innerHTML = `
+            <div class="typing-indicator">
+                <span>Thinking</span>
+                <div class="typing-dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+        `;
+        chatContainer.appendChild(loadingDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
+    function hideInlineLoading() {
+        const loadingDiv = document.getElementById('inline-loading');
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
+    }
+
+    function toggleInputs(disabled) {
+        submitBtn.disabled = disabled;
+        userInput.disabled = disabled;
+    }
+
+    // ===== TEXT FORMATTING =====
+    
+    function formatText(text) {
+        if (typeof marked !== 'undefined') {
+            const parsedHTML = marked.parse(text);
+            return `<div class="formatted-message">${parsedHTML}</div>`;
+        }
+        return text;
+    }
+
+    // ===== SESSION MANAGEMENT =====
+    
     function loadSessions() {
         const sessions = JSON.parse(localStorage.getItem(getSessionKey())) || {};
         sessionList.innerHTML = "";
@@ -47,7 +90,7 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Display sessions with proper numbering
         sessionIds.forEach((sessionId, index) => {
-            const sessionNumber = sessionIds.length - index; // Reverse numbering so newest is highest
+            const sessionNumber = sessionIds.length - index;
             const sessionName = `Session ${sessionNumber}`;
             const sessionItem = document.createElement("li");
             sessionItem.textContent = sessionName;
@@ -71,7 +114,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
             menuButton.addEventListener("click", (e) => {
                 e.stopPropagation();
-                // Close all other dropdowns first
                 document.querySelectorAll(".menu-dropdown").forEach(dd => {
                     if (dd !== menuDropdown) dd.classList.remove("show");
                 });
@@ -89,7 +131,6 @@ document.addEventListener("DOMContentLoaded", function () {
             sessionItem.appendChild(menuContainer);
 
             sessionItem.addEventListener("click", () => {
-                // Close dropdown when clicking session
                 document.querySelectorAll(".menu-dropdown").forEach(dd => dd.classList.remove("show"));
                 loadSession(sessionId);
             });
@@ -107,14 +148,10 @@ document.addEventListener("DOMContentLoaded", function () {
     function loadSession(sessionId) {
         console.log(`Loading session: ${sessionId}`);
         
-        // Clear chat immediately
         chatContainer.innerHTML = "";
-        
-        // Update current session
         currentSessionId = sessionId;
         localStorage.setItem(`currentSessionId_${currentDomain}`, currentSessionId);
         
-        // Fetch and render history
         fetchAndRenderChatHistory(sessionId);
         highlightActiveSession();
     }
@@ -128,6 +165,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     async function fetchAndRenderChatHistory(sessionId) {
+        // Show old loading indicator for history loading
         loadingIndicator.style.display = "block";
         
         try {
@@ -151,7 +189,7 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (error) {
             loadingIndicator.style.display = "none";
             console.error("Error loading session:", error);
-            chatContainer.innerHTML += `<div class="message ai-message error">❌ Error loading session: ${error}</div>`;
+            chatContainer.innerHTML += `<div class="message ai-message error">❌ Error loading session: ${error.message}</div>`;
         }
     }
     
@@ -198,21 +236,17 @@ document.addEventListener("DOMContentLoaded", function () {
             const data = await response.json();
             
             if (data.success) {
-                // Save to local storage
                 let sessions = JSON.parse(localStorage.getItem(getSessionKey())) || {};
                 sessions[newSessionId] = {
                     createdAt: Date.now()
                 };
                 localStorage.setItem(getSessionKey(), JSON.stringify(sessions));
                 
-                // Switch to new session
                 currentSessionId = newSessionId;
                 localStorage.setItem(`currentSessionId_${currentDomain}`, currentSessionId);
                 
-                // Clear chat
                 chatContainer.innerHTML = "";
                 
-                // Reload session list
                 loadSessions();
                 highlightActiveSession();
                 
@@ -248,20 +282,16 @@ document.addEventListener("DOMContentLoaded", function () {
             const data = await response.json();
             
             if (data.success) {
-                // Remove from local storage
                 let sessions = JSON.parse(localStorage.getItem(getSessionKey())) || {};
                 delete sessions[sessionId];
                 localStorage.setItem(getSessionKey(), JSON.stringify(sessions));
                 
-                // If we deleted the current session
                 if (currentSessionId === sessionId) {
                     chatContainer.innerHTML = "";
                     
-                    // Get remaining sessions
                     const remainingSessions = Object.keys(sessions);
                     
                     if (remainingSessions.length > 0) {
-                        // Load the newest remaining session
                         const sortedIds = remainingSessions.sort((a, b) => {
                             return sessions[b].createdAt - sessions[a].createdAt;
                         });
@@ -269,14 +299,11 @@ document.addEventListener("DOMContentLoaded", function () {
                         localStorage.setItem(`currentSessionId_${currentDomain}`, currentSessionId);
                         await fetchAndRenderChatHistory(currentSessionId);
                     } else {
-                        // No sessions left, create a new one
                         await createNewSession();
-                        // Exit early since createNewSession already updates UI
                         return;
                     }
                 }
                 
-                // Reload session list
                 loadSessions();
                 console.log(`Deleted session: ${sessionId}`);
             } else {
@@ -288,6 +315,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // ===== CHAT SUBMISSION =====
+    
     submitBtn.addEventListener("click", async function () {
         let query = userInput.value.trim();
         if (!query) return;
@@ -301,10 +330,17 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log(`Sending query to session: ${currentSessionId}`);
 
         // Display user message
-        chatContainer.innerHTML += `<div class="message user-message"><p>${query}</p></div>`;
+        const userMessageDiv = document.createElement('div');
+        userMessageDiv.className = 'message user-message';
+        userMessageDiv.innerHTML = `<p>${query}</p>`;
+        chatContainer.appendChild(userMessageDiv);
+        
         userInput.value = "";
         chatContainer.scrollTop = chatContainer.scrollHeight;
-        loadingIndicator.style.display = "block";
+        
+        // Show inline loading animation and disable inputs
+        showInlineLoading();
+        toggleInputs(true);
 
         try {
             const response = await fetch("/chat", {
@@ -318,51 +354,88 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             const data = await response.json();
-            loadingIndicator.style.display = "none";
+            
+            // Hide loading animation
+            hideInlineLoading();
+            toggleInputs(false);
 
             if (data.error) {
-                chatContainer.innerHTML += `<div class="message ai-message error">❌ ${data.error}</div>`;
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message ai-message error';
+                errorDiv.innerHTML = `<p>❌ ${data.error}</p>`;
+                chatContainer.appendChild(errorDiv);
             } else {
                 const botResponse = data.history[data.history.length - 1].bot;
                 
+                // Wait for marked.js to load if necessary
                 if (typeof marked === 'undefined') {
-                    setTimeout(() => {
-                        let formattedResponse = formatText(botResponse);
-                        chatContainer.innerHTML += `<div class="message ai-message"><p>${formattedResponse}</p></div>`;
-                        chatContainer.scrollTop = chatContainer.scrollHeight;
-                    }, 100);
-                } else {
-                    let formattedResponse = formatText(botResponse);
-                    chatContainer.innerHTML += `<div class="message ai-message"><p>${formattedResponse}</p></div>`;
+                    await new Promise(resolve => setTimeout(resolve, 100));
                 }
+                
+                let formattedResponse = formatText(botResponse);
+                const aiMessageDiv = document.createElement('div');
+                aiMessageDiv.className = 'message ai-message';
+                aiMessageDiv.innerHTML = `<p>${formattedResponse}</p>`;
+                chatContainer.appendChild(aiMessageDiv);
+                
+                saveSessionToLocalStorage();
             }
             
             chatContainer.scrollTop = chatContainer.scrollHeight;
-            saveSessionToLocalStorage();
+            
         } catch (error) {
-            loadingIndicator.style.display = "none";
+            hideInlineLoading();
+            toggleInputs(false);
+            
             console.error("Chat error:", error);
-            chatContainer.innerHTML += `<div class="message ai-message error">❌ Error: ${error}</div>`;
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'message ai-message error';
+            errorDiv.innerHTML = `<p>❌ Error: ${error.message || 'Failed to send message'}</p>`;
+            chatContainer.appendChild(errorDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
     });
 
     userInput.addEventListener("keypress", function (event) {
-        if (event.key === "Enter") {
+        if (event.key === "Enter" && !userInput.disabled) {
             event.preventDefault();
             submitBtn.click();
         }
     });
 
+    // ===== INITIALIZATION =====
+    
     async function initializePage() {
+        try {
+            const response = await fetch("/get_user_sessions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({})
+            });
+            
+            const data = await response.json();
+            
+            if (data.sessions && data.sessions[currentDomain]) {
+                let localSessions = {};
+                data.sessions[currentDomain].forEach(sess => {
+                    localSessions[sess.session_id] = {
+                        createdAt: sess.createdAt
+                    };
+                });
+                localStorage.setItem(getSessionKey(), JSON.stringify(localSessions));
+                
+                console.log(`Synced ${Object.keys(localSessions).length} sessions from database`);
+            }
+        } catch (error) {
+            console.error("Error fetching sessions from database:", error);
+        }
+        
         const sessions = JSON.parse(localStorage.getItem(getSessionKey())) || {};
         
         if (Object.keys(sessions).length === 0) {
-            // No sessions exist, create first one
             await createNewSession();
         } else {
-            // Check if current session exists
             if (!currentSessionId || !sessions[currentSessionId]) {
-                // Load newest session
                 const sortedIds = Object.keys(sessions).sort((a, b) => {
                     return sessions[b].createdAt - sessions[a].createdAt;
                 });
@@ -376,7 +449,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
             
-            // Load the current session history
             await fetchAndRenderChatHistory(currentSessionId);
         }
         
