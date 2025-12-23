@@ -94,13 +94,13 @@ def logout():
     return jsonify({"message": "Logged out successfully!"})
 
 DOMAIN_INDEXES = {
-    "health": "faiss_indexes/new_health",
-    "law": "faiss_indexes/law",
+    "health": "faiss_index/health",
+    "law": "faiss_index/law",
     # "finance": "faiss_indexes/finance",
     # "technology": "faiss_indexes/technology",
     # "education": "faiss_indexes/education",
     # "research": "faiss_indexes/research",
-    "home": "faiss_indexes/general" 
+    "home": "faiss_index/general" 
 }
 
 vectorstore_cache = {}
@@ -378,20 +378,47 @@ def get_all_sessions():
     session_list = list(sessions)
     return jsonify({"sessions": session_list})
 
+@app.route("/get_user_sessions", methods=["POST"])
+def get_user_sessions():
+    """Get all sessions for a user across all domains"""
+    if "user" not in session:
+        return jsonify({"error": "Please log in to continue"}), 401
+        
+    user_email = session["user"]
+    
+    # Get all unique sessions for this user
+    all_sessions = chat_history_collection.find({
+        "user_email": user_email
+    }, {"session_id": 1, "domain": 1, "created_at": 1, "_id": 0})
+    
+    sessions_by_domain = {}
+    for sess in all_sessions:
+        domain = sess.get("domain", "home")
+        if domain not in sessions_by_domain:
+            sessions_by_domain[domain] = []
+        sessions_by_domain[domain].append({
+            "session_id": sess["session_id"],
+            "createdAt": sess.get("created_at", 0) * 1000  # Convert to milliseconds
+        })
+    
+    return jsonify({"sessions": sessions_by_domain})
+
 @app.route("/")
 def index():
+    # Always clear session and redirect to login
+    session.clear()
     return redirect(url_for('login_page'))
 
 @app.route("/login")
 def login_page():
-    if "user" in session:
-        return redirect(url_for('home'))
+    # Always clear session when visiting login page
+    session.clear()
     return render_template("login.html")
 
 @app.route("/signup")
 def signup_page():
-    if "user" in session:
-        return redirect(url_for('home'))
+    # Clear session when visiting signup page
+    session.clear()
     return render_template("signup.html")
 
 @app.route("/home")
