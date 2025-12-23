@@ -15,33 +15,11 @@ import time
 from authlib.integrations.flask_client import OAuth
 from functools import wraps
 
-# oauth = OAuth(app)
-
-# # Configure Google OAuth
-# google = oauth.register(
-#     name='google',
-#     client_id='YOUR_GOOGLE_CLIENT_ID',
-#     client_secret='YOUR_GOOGLE_CLIENT_SECRET',
-#     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-#     client_kwargs={'scope': 'openid email profile'}
-# )
-
-# # Configure GitHub OAuth
-# github = oauth.register(
-#     name='github',
-#     client_id='YOUR_GITHUB_CLIENT_ID',
-#     client_secret='YOUR_GITHUB_CLIENT_SECRET',
-#     access_token_url='https://github.com/login/oauth/access_token',
-#     authorize_url='https://github.com/login/oauth/authorize',
-#     api_base_url='https://api.github.com/',
-#     client_kwargs={'scope': 'user:email'}
-# )
 load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# Configure Google Gemini with new library
 genai_client = genai.Client(api_key=GOOGLE_API_KEY)
 
 client = MongoClient(MONGO_URI)
@@ -61,7 +39,6 @@ app.config["SESSION_PERMANENT"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=31)
 Session(app)
 
-# Authentication decorator
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -279,8 +256,6 @@ INSTRUCTIONS:
 
 Respond to the user's question:
 """
-        
-        # Use Google Gemini 2.5 Flash (latest stable model)
         response_obj = genai_client.models.generate_content(
             model='gemini-2.5-flash',
             contents=strict_prompt
@@ -290,7 +265,6 @@ Respond to the user's question:
         new_message = {"user": query, "bot": response}
         history.append(new_message)
         
-        # Update the chat history in the database
         update_result = chat_history_collection.update_one(
             history_filter,
             {"$set": {"messages": history, "last_updated": int(time.time())}},
@@ -307,7 +281,6 @@ Respond to the user's question:
         import traceback
         traceback.print_exc()
         
-        # Better error handling
         if "quota" in error_msg.lower() or "429" in error_msg:
             return jsonify({"error": "API quota exceeded. Please try again in a few moments."}), 429
         elif "api key" in error_msg.lower():
@@ -325,11 +298,9 @@ def create_new_session():
     domain = data.get("domain", "home")
     session_id = data.get("session_id")
     
-    # If no session_id provided, create one
     if not session_id:
         session_id = secrets.token_hex(8)
     
-    # Create a new session in the database
     chat_history_collection.insert_one({
         "user_email": user_email,
         "domain": domain,
@@ -373,7 +344,6 @@ def delete_session():
     domain = data.get("domain", "home")
     session_id = data.get("session_id")
     
-    # Delete the specific session from the database
     if session_id:
         result = chat_history_collection.delete_one({
             "user_email": user_email,
@@ -382,7 +352,6 @@ def delete_session():
         })
         print(f"Deleted {result.deleted_count} session(s) for user {user_email}, domain {domain}, session {session_id}")
     else:
-        # If no session ID provided, clear all sessions for this user in this domain
         result = chat_history_collection.delete_many({
             "user_email": user_email,
             "domain": domain
@@ -401,7 +370,6 @@ def get_all_sessions():
     data = request.json
     domain = data.get("domain", "home")
     
-    # Get all sessions for this user and domain
     sessions = chat_history_collection.find({
         "user_email": user_email,
         "domain": domain
@@ -410,49 +378,18 @@ def get_all_sessions():
     session_list = list(sessions)
     return jsonify({"sessions": session_list})
 
-# @app.route('/auth/google')
-# def google_login():
-#     redirect_uri = url_for('google_callback', _external=True)
-#     return google.authorize_redirect(redirect_uri)
-
-# @app.route('/auth/google/callback')
-# def google_callback():
-#     token = google.authorize_access_token()
-#     user_info = google.parse_id_token(token)
-#     # Create or login user, set session
-#     session['user'] = user_info['email']
-#     return redirect('/home')
-
-# @app.route('/auth/github')
-# def github_login():
-#     redirect_uri = url_for('github_callback', _external=True)
-#     return github.authorize_redirect(redirect_uri)
-
-# @app.route('/auth/github/callback')
-# def github_callback():
-#     token = github.authorize_access_token()
-#     resp = github.get('user', token=token)
-#     user_info = resp.json()
-#     # Create or login user, set session
-#     session['user'] = user_info['email']
-#     return redirect('/home')
-
-# Route definitions with authentication
 @app.route("/")
 def index():
-    # Always show login page at root
     return redirect(url_for('login_page'))
 
 @app.route("/login")
 def login_page():
-    # If already logged in, redirect to home
     if "user" in session:
         return redirect(url_for('home'))
     return render_template("login.html")
 
 @app.route("/signup")
 def signup_page():
-    # If already logged in, redirect to home
     if "user" in session:
         return redirect(url_for('home'))
     return render_template("signup.html")
