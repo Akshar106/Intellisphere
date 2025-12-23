@@ -16,10 +16,9 @@ COPY main.py .
 COPY db.py .
 COPY download.py .
 COPY embeddings/ ./embeddings/
-COPY faiss_index/ ./faiss_index/
 COPY static/ ./static/
 COPY templates/ ./templates/
-COPY data/ ./data/
+
 
 ENV PYTHONUNBUFFERED=1
 ENV FLASK_APP=main.py
