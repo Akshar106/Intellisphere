@@ -9,8 +9,10 @@ from flask_session import Session
 from langchain_community.vectorstores import FAISS
 from werkzeug.security import check_password_hash, generate_password_hash
 from bson.binary import Binary
-from google import genai
-from google.genai import types
+# from google import genai
+# from google.genai import types
+import google.generativeai as genai
+from google.generativeai import types
 import time
 from authlib.integrations.flask_client import OAuth
 from functools import wraps
