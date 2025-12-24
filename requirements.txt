@@ -10,3 +10,4 @@ google-generativeai
 authlib
 beautifulsoup4
 gunicorn
+google-genai
