@@ -69,8 +69,9 @@ jobs:
 
       - name: Stop and remove old container
         run: |
-          docker stop intellisphere || true
+          docker stop -t 5 intellisphere || true
           docker rm intellisphere || true
+
 
       - name: Run new Docker container
         env:
