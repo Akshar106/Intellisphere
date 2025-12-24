@@ -38,5 +38,5 @@ ENV FLASK_ENV=production
 EXPOSE 5000
 
 # Download FAISS indexes from S3 on container start, then run app
-CMD aws s3 sync s3://intellisphere-faiss-indexes/faiss_index/ ./faiss_index/ \
-    && gunicorn --bind 0.0.0.0:5000 --workers 4 --timeout 120 main:app
+CMD aws s3 sync s3://intellisphere-faiss-indexes/ ./faiss_index/ && \
+    gunicorn --bind 0.0.0.0:5000 --workers 4 --timeout 120 main:app
