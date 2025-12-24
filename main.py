@@ -93,15 +93,26 @@ def logout():
     session.pop("user", None)
     return jsonify({"message": "Logged out successfully!"})
 
+
+FAISS_BASE_DIR = os.getenv("FAISS_BASE_DIR", "faiss_index")
+
 DOMAIN_INDEXES = {
-    "health": "faiss_index/health",
-    "law": "faiss_index/law",
-    # "finance": "faiss_indexes/finance",
-    # "technology": "faiss_indexes/technology",
-    # "education": "faiss_indexes/education",
-    # "research": "faiss_indexes/research",
-    "home": "faiss_index/general" 
+    "health": os.path.join(FAISS_BASE_DIR, "health"),
+    "law": os.path.join(FAISS_BASE_DIR, "law"),
+    "home": os.path.join(FAISS_BASE_DIR, "general"),
 }
+
+def validate_faiss_path(path: str):
+    if not os.path.exists(path):
+        raise RuntimeError(f"FAISS directory missing: {path}")
+    if not (
+        os.path.exists(os.path.join(path, "index.faiss")) and
+        os.path.exists(os.path.join(path, "index.pkl"))
+    ):
+        raise RuntimeError(f"FAISS index files missing in {path}")
+
+for domain, path in DOMAIN_INDEXES.items():
+    validate_faiss_path(path)
 
 vectorstore_cache = {}
 
