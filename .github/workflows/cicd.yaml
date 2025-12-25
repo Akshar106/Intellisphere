@@ -44,6 +44,9 @@ jobs:
   Continuous-Deployment:
     needs: Continuous-Integration
     runs-on: [self-hosted, Linux, X64]
+    concurrency:
+      group: intellisphere-deploy
+      cancel-in-progress: true
 
     steps:
       - name: Checkout code
