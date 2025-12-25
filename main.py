@@ -14,8 +14,6 @@ from google.genai import types
 import time
 from authlib.integrations.flask_client import OAuth
 from functools import wraps
-import boto3
-import os
 
 load_dotenv()
 
