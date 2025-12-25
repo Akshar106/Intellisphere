@@ -309,10 +309,10 @@
       }, titleText.length * 80 + 300);
 
       // Auto-redirect if already logged in
-      const user = localStorage.getItem("user");
-      if (user) {
-        window.location.href = "/home";
-      }
+      // const user = localStorage.getItem("user");
+      // if (user) {
+      //   window.location.href = "/home";
+      // }
     };
 
     // Login form submission
@@ -343,7 +343,7 @@
         if (data.success) {
           errorMessage.className = "success";
           errorMessage.innerText = "Login successful! Redirecting...";
-          localStorage.setItem("user", JSON.stringify(data.user));
+          // localStorage.setItem("user", JSON.stringify(data.user));
           setTimeout(() => {
             window.location.href = "/home";
           }, 1500);
