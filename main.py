@@ -413,23 +413,46 @@ def get_user_sessions():
     
     return jsonify({"sessions": sessions_by_domain})
 
+# @app.route("/")
+# def index():
+#     # Always clear session and redirect to login
+#     session.clear()
+#     return redirect(url_for('login_page'))
+
+# @app.route("/login")
+# def login_page():
+#     # Always clear session when visiting login page
+#     session.clear()
+#     return render_template("login.html")
+
+# @app.route("/signup")
+# def signup_page():
+#     # Clear session when visiting signup page
+#     session.clear()
+#     return render_template("signup.html")
+
 @app.route("/")
 def index():
-    # Always clear session and redirect to login
-    session.clear()
+    # Check if user is already logged in
+    if "user" in session:
+        return redirect(url_for('home'))
+    # If not logged in, redirect to login
     return redirect(url_for('login_page'))
 
 @app.route("/login")
 def login_page():
-    # Always clear session when visiting login page
-    session.clear()
+    # If already logged in, redirect to home
+    if "user" in session:
+        return redirect(url_for('home'))
     return render_template("login.html")
 
 @app.route("/signup")
 def signup_page():
-    # Clear session when visiting signup page
-    session.clear()
+    # If already logged in, redirect to home
+    if "user" in session:
+        return redirect(url_for('home'))
     return render_template("signup.html")
+
 
 @app.route("/home")
 @login_required
