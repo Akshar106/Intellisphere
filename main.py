@@ -88,10 +88,10 @@ def login():
 
     return jsonify({"success": False, "message": "Invalid email or password."})
 
-@app.route("/logout", methods=["POST"])
-def logout():
-    session.pop("user", None)
-    return jsonify({"message": "Logged out successfully!"})
+# @app.route("/logout", methods=["POST"])
+# def logout():
+#     session.pop("user", None)
+#     return jsonify({"message": "Logged out successfully!"})
 
 
 def validate_faiss_path(path: str):
@@ -433,26 +433,31 @@ def get_user_sessions():
 
 @app.route("/")
 def index():
-    # Check if user is already logged in
-    if "user" in session:
-        return redirect(url_for('home'))
-    # If not logged in, redirect to login
+    # Clear any existing session and always redirect to login
+    session.clear()
     return redirect(url_for('login_page'))
 
 @app.route("/login")
 def login_page():
-    # If already logged in, redirect to home
+    # If user is already logged in, redirect to home
     if "user" in session:
         return redirect(url_for('home'))
     return render_template("login.html")
 
 @app.route("/signup")
 def signup_page():
-    # If already logged in, redirect to home
+    # If user is already logged in, redirect to home
     if "user" in session:
         return redirect(url_for('home'))
     return render_template("signup.html")
 
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    """Handle both GET and POST logout requests"""
+    session.clear()
+    if request.method == "POST":
+        return jsonify({"message": "Logged out successfully!"})
+    return redirect(url_for('login_page'))
 
 @app.route("/home")
 @login_required
@@ -468,26 +473,6 @@ def law():
 @login_required
 def health():
     return render_template("health.html", domain="health")
-
-# @app.route("/technology")
-# @login_required
-# def technology():
-#     return render_template("technology.html", domain="technology")
-
-# @app.route("/finance")
-# @login_required
-# def finance():
-#     return render_template("finance.html", domain="finance")
-
-# @app.route("/research")
-# @login_required
-# def research():
-#     return render_template("research.html", domain="research")
-
-# @app.route("/education")
-# @login_required
-# def education():
-#     return render_template("education.html", domain="education")
 
 if __name__ == "__main__":
     app.run(
