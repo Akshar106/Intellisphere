@@ -14,6 +14,8 @@ from google.genai import types
 import time
 from authlib.integrations.flask_client import OAuth
 from functools import wraps
+import boto3
+import os
 
 load_dotenv()
 
@@ -94,14 +96,6 @@ def logout():
     return jsonify({"message": "Logged out successfully!"})
 
 
-FAISS_BASE_DIR = os.getenv("FAISS_BASE_DIR", "faiss_index")
-
-DOMAIN_INDEXES = {
-    "health": os.path.join(FAISS_BASE_DIR, "health"),
-    "law": os.path.join(FAISS_BASE_DIR, "law"),
-    "home": os.path.join(FAISS_BASE_DIR, "general"),
-}
-
 def validate_faiss_path(path: str):
     if not os.path.exists(path):
         raise RuntimeError(f"FAISS directory missing: {path}")
@@ -110,6 +104,13 @@ def validate_faiss_path(path: str):
         os.path.exists(os.path.join(path, "index.pkl"))
     ):
         raise RuntimeError(f"FAISS index files missing in {path}")
+    
+FAISS_BASE_DIR = os.getenv("FAISS_BASE_DIR", "faiss_index")
+
+DOMAIN_INDEXES = {
+    "health": os.path.join(FAISS_BASE_DIR, "health"),
+    "law": os.path.join(FAISS_BASE_DIR, "law"),
+}
 
 for domain, path in DOMAIN_INDEXES.items():
     validate_faiss_path(path)
