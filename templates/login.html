@@ -160,26 +160,38 @@
     }
 
     #error-message {
-      padding: 12px 18px;
-      border-radius: 8px;
+      padding: 14px 18px;
+      border-radius: 10px;
       margin-bottom: 20px;
       font-size: 14px;
       font-weight: 500;
       text-align: center;
       display: none;
+      animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     #error-message.error {
-      background: #fee;
-      color: #c33;
-      border: 1px solid #fcc;
+      background: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
       display: block;
     }
 
     #error-message.success {
-      background: #efe;
-      color: #3c3;
-      border: 1px solid #cfc;
+      background: #d1fae5;
+      color: #059669;
+      border: 1px solid #6ee7b7;
       display: block;
     }
 
@@ -272,7 +284,7 @@
     </form>
 
     <div class="signup-link">
-      New here? <a href="{{ url_for('signup') }}">Create an Account</a>
+      New here? <a href="/signup">Create an Account</a>
     </div>
   </div>
 
@@ -307,27 +319,23 @@
       setTimeout(() => {
         typeWriter(subtitle, subtitleText, 40);
       }, titleText.length * 80 + 300);
-
-      // Auto-redirect if already logged in
-      // const user = localStorage.getItem("user");
-      // if (user) {
-      //   window.location.href = "/home";
-      // }
     };
 
     // Login form submission
     document.getElementById("login-form").addEventListener("submit", async function(e) {
       e.preventDefault();
 
-      const email = document.getElementById("email-input").value;
+      const email = document.getElementById("email-input").value.trim();
       const password = document.getElementById("password-input").value;
       const errorMessage = document.getElementById("error-message");
       const loadingOverlay = document.getElementById("loading-overlay");
 
+      // Clear previous messages
       errorMessage.className = "";
       errorMessage.style.display = "none";
       errorMessage.innerText = "";
 
+      // Show loading spinner
       loadingOverlay.classList.add("show-loading");
 
       try {
@@ -338,23 +346,43 @@
         });
 
         const data = await response.json();
+        
+        // Hide loading spinner
         loadingOverlay.classList.remove("show-loading");
 
         if (data.success) {
+          // Show success message
           errorMessage.className = "success";
-          errorMessage.innerText = "Login successful! Redirecting...";
-          // localStorage.setItem("user", JSON.stringify(data.user));
+          errorMessage.innerText = "✓ Login successful! Redirecting to home...";
+          errorMessage.style.display = "block";
+          
+          // Disable form to prevent double submission
+          document.getElementById("login-form").querySelector('button').disabled = true;
+          
+          // Wait 2 seconds so user can see the success message
           setTimeout(() => {
             window.location.href = "/home";
-          }, 1500);
+          }, 2000);
         } else {
+          // Show error message from server
           errorMessage.className = "error";
-          errorMessage.innerText = data.message;
+          errorMessage.innerText = data.message || "⚠ Invalid email or password. Please try again.";
+          errorMessage.style.display = "block";
+          
+          // Clear password field for security
+          document.getElementById("password-input").value = "";
+          document.getElementById("password-input").focus();
         }
       } catch (error) {
+        // Hide loading spinner
         loadingOverlay.classList.remove("show-loading");
+        
+        // Show connection error
         errorMessage.className = "error";
-        errorMessage.innerText = "Error logging in. Please try again.";
+        errorMessage.innerText = "⚠ Connection error. Please check your internet and try again.";
+        errorMessage.style.display = "block";
+        
+        console.error("Login Error:", error);
       }
     });
   </script>

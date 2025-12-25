@@ -525,31 +525,18 @@
     </footer>
 
     <script>
-        // Logout handler
+    // Logout handler
         async function handleLogout() {
             try {
                 await fetch("/logout", { method: "POST" });
-                localStorage.removeItem("user");
-                window.location.href = "/";
+                window.location.href = "/login";
             } catch (error) {
                 console.error("Logout Error:", error);
                 alert("Logout failed. Please try again.");
             }
         }
 
-        // Check if user is logged in
-        function checkLoginStatus() {
-            const user = localStorage.getItem("user");
-            if (!user) {
-                // If no user is logged in, redirect to login page
-                window.location.href = "/";
-            }
-        }
-
         document.addEventListener("DOMContentLoaded", () => {
-            // Check login status on page load
-            checkLoginStatus();
-
             const signOutButton = document.getElementById("signout-btn");
 
             if (signOutButton) {
@@ -560,6 +547,6 @@
                 });
             }
         });
-    </script>
+</script>
 </body>
 </html>
